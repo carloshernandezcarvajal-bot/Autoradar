@@ -7,6 +7,11 @@ class Settings(BaseSettings):
         "DATABASE_URL",
         "sqlite+aiosqlite:///./autoradar.db"
     )
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if self.database_url.startswith("postgresql://") and "+asyncpg" not in self.database_url:
+            self.database_url = self.database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
     secret_key: str = "dev-secret-key-change-in-production"
     jwt_algorithm: str = "HS256"
     jwt_expiration_hours: int = 24

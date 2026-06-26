@@ -30,3 +30,6 @@ ms-playwright/
 informacion.txt
 *.log
 *.db
+
+# Nested repo
+Autoradar/

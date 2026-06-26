@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Heart, Bell, User, LogOut, Menu, X, Car } from "lucide-react";
 import { api } from "@/lib/api";
 import { useRouter } from "next/navigation";
@@ -18,6 +18,12 @@ export default function Navbar({ onSearchToggle }: NavbarProps) {
   const [error, setError] = useState("");
   const [user, setUser] = useState<{ id: number; email: string } | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    api.getMe().then(setUser).catch(() => localStorage.removeItem("token"));
+  }, []);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
