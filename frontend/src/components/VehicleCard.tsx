@@ -1,6 +1,7 @@
 "use client";
 
-import { Heart, MapPin, Gauge, Calendar, ExternalLink } from "lucide-react";
+import Link from "next/link";
+import { Heart, MapPin, Gauge, Calendar, ExternalLink, BarChart3 } from "lucide-react";
 import type { ListingWithScore } from "@/types";
 
 interface VehicleCardProps {
@@ -137,15 +138,24 @@ export default function VehicleCard({
             {listing.source} &middot; {listing.currency}
           </p>
         </div>
-        <a
-          href={listing.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1 rounded-lg bg-[var(--secondary)] px-3 py-2 text-xs transition-colors hover:bg-[var(--border)]"
-        >
-          <ExternalLink className="h-3 w-3" />
-          Ver original
-        </a>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/vehiculo/${listing.id}`}
+            className="flex items-center gap-1 rounded-lg bg-[var(--primary)]/10 text-[var(--primary)] px-3 py-2 text-xs font-semibold transition-colors hover:bg-[var(--primary)]/20"
+          >
+            <BarChart3 className="h-3.5 w-3.5" />
+            Análisis
+          </Link>
+          <a
+            href={listing.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 rounded-lg bg-[var(--secondary)] px-3 py-2 text-xs transition-colors hover:bg-[var(--border)] text-[var(--foreground)]"
+          >
+            <ExternalLink className="h-3 w-3" />
+            Original
+          </a>
+        </div>
       </div>
     </div>
   );
