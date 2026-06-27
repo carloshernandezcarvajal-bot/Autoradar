@@ -8,17 +8,18 @@ from app.models.favorite import Favorite
 from app.models.listing import Listing
 from app.models.user import User
 from app.routers.auth import get_current_user
-from app.schemas.schemas import FavoriteOut, ListingOut
+from app.schemas.schemas import FavoriteCreate, FavoriteOut, ListingOut
 
 router = APIRouter(prefix="/api/favorites", tags=["favorites"])
 
 
 @router.post("", response_model=FavoriteOut)
 async def add_favorite(
-    listing_id: int,
+    favorite_data: FavoriteCreate,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    listing_id = favorite_data.listing_id
     existing = await db.execute(
         select(Favorite).where(
             Favorite.user_id == user.id, Favorite.listing_id == listing_id

@@ -87,6 +87,10 @@ class AlertOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class FavoriteCreate(BaseModel):
+    listing_id: int
+
+
 class FavoriteOut(BaseModel):
     id: int
     user_id: int
