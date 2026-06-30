@@ -158,7 +158,10 @@ class CarroYaScraper(BaseScraper):
                     url = f"{self.BASE_URL}/carros-usados/pagina-{page_num}"
                     try:
                         await page.goto(url, timeout=30000, wait_until="domcontentloaded")
-                        await page.wait_for_timeout(2000)
+                        try:
+                            await page.wait_for_selector(".cy-publication-card-portal-ds-milla", timeout=15000)
+                        except Exception:
+                            continue
 
                         # Realizar scroll vertical progresivo para activar el lazy loading de las tarjetas principales
                         for i in range(5):
