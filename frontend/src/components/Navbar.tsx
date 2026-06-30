@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Search, Heart, Bell, User, LogOut, Menu, X, Car } from "lucide-react";
 import { api } from "@/lib/api";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 interface NavbarProps {
   onSearchToggle?: () => void;
@@ -18,6 +18,19 @@ export default function Navbar({ onSearchToggle }: NavbarProps) {
   const [error, setError] = useState("");
   const [user, setUser] = useState<{ id: number; email: string } | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
+ 
+  const handleSearchClick = () => {
+    if (pathname === "/") {
+      const searchInput = document.querySelector("input[placeholder*='Buscar marca']");
+      if (searchInput) {
+        (searchInput as HTMLInputElement).focus();
+        searchInput.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    } else {
+      router.push("/");
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -72,7 +85,7 @@ export default function Navbar({ onSearchToggle }: NavbarProps) {
 
         <div className="hidden items-center gap-6 md:flex">
           <button
-            onClick={onSearchToggle}
+            onClick={handleSearchClick}
             className="flex items-center gap-2 text-sm text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
           >
             <Search className="h-4 w-4" />
@@ -128,7 +141,7 @@ export default function Navbar({ onSearchToggle }: NavbarProps) {
           <div className="flex flex-col gap-3">
             <button
               onClick={() => {
-                onSearchToggle?.();
+                handleSearchClick();
                 setMenuOpen(false);
               }}
               className="flex items-center gap-2 text-sm"
