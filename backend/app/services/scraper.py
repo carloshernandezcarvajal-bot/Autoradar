@@ -52,6 +52,7 @@ class TuCarroScraper(BaseScraper):
                 for page_num in range(1, max_pages + 1):
                     url = f"{self.BASE_URL}/vehiculos/_NoIndex_True_Desde_{page_num * 48}_OrderId_PRICE"
                     try:
+                        print(f"TuCarroScraper: Procesando pagina {page_num}/{max_pages}...")
                         await page.goto(url, timeout=30000, wait_until="domcontentloaded")
                         await page.wait_for_timeout(2000)
 
@@ -157,6 +158,7 @@ class CarroYaScraper(BaseScraper):
                 for page_num in range(1, max_pages + 1):
                     url = f"{self.BASE_URL}/carros-usados/pagina-{page_num}"
                     try:
+                        print(f"CarroYaScraper: Procesando pagina {page_num}/{max_pages}...")
                         await page.goto(url, timeout=30000, wait_until="domcontentloaded")
                         try:
                             await page.wait_for_selector(".cy-publication-card-portal-ds-milla", timeout=15000)

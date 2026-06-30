@@ -81,6 +81,7 @@ async def _save_vehicle_data(db: AsyncSession, data: dict) -> dict:
         await db.flush()
 
     listing = await _save_listing(db, vehicle.id, data)
+    await db.commit()
 
     return {
         "listing_id": listing.id,
@@ -123,6 +124,7 @@ async def run_scrape(sources: list[str] | None = None) -> dict:
                     results[source_name] += 1
                     results["total"] += 1
                 except Exception as e:
+                    await db.rollback()
                     results["errors"].append(f"{source_name} item: {str(e)}")
 
         await db.commit()
