@@ -103,11 +103,11 @@ async def run_scrape(sources: list[str] | None = None) -> dict:
 
     if "tucarro" in sources:
         tucarro = TuCarroScraper()
-        scrape_tasks.append(("tucarro", tucarro.scrape(max_pages=3)))
+        scrape_tasks.append(("tucarro", tucarro.scrape(max_pages=1)))
 
     if "carroya" in sources:
         carroya = CarroYaScraper()
-        scrape_tasks.append(("carroya", carroya.scrape(max_pages=3)))
+        scrape_tasks.append(("carroya", carroya.scrape(max_pages=15)))
 
     async with async_session() as db:
         for source_name, scrape_task in scrape_tasks:
