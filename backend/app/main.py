@@ -13,6 +13,12 @@ _scrape_task: asyncio.Task | None = None
 
 
 async def _scheduled_scrape():
+    # Ejecutar primera siembra de forma inmediata en segundo plano al arrancar el servidor
+    try:
+        await run_scrape()
+    except Exception:
+        pass
+
     while True:
         try:
             await asyncio.sleep(3600)
