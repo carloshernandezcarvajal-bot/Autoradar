@@ -23,11 +23,7 @@ export default function SearchBar({ onSearch, initialFilters }: SearchBarProps) 
   }, []);
 
   useEffect(() => {
-    if (filters.brand) {
-      api.getModels(filters.brand).then(setModels).catch(() => {});
-    } else {
-      setModels([]);
-    }
+    api.getModels(filters.brand).then(setModels).catch(() => {});
   }, [filters.brand]);
 
   const handleSubmit = (e: React.FormEvent) => {
