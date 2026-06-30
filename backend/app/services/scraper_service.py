@@ -107,7 +107,7 @@ async def run_scrape(sources: list[str] | None = None) -> dict:
 
     if "carroya" in sources:
         carroya = CarroYaScraper()
-        scrape_tasks.append(("carroya", carroya.scrape(max_pages=15)))
+        scrape_tasks.append(("carroya", carroya.scrape(max_pages=70)))
 
     async with async_session() as db:
         for source_name, scrape_task in scrape_tasks:
