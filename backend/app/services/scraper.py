@@ -252,3 +252,133 @@ class CarroYaScraper(BaseScraper):
             "title": title.strip(),
             "date_found": datetime.now(timezone.utc),
         }
+
+
+class VendeTuNaveScraper(BaseScraper):
+    BASE_URL = "https://www.vendetunave.co"
+
+    async def scrape(self, max_pages: int = 5) -> list[dict]:
+        await self.start()
+        vehicles = []
+        try:
+            page = await self.context.new_page()
+            try:
+                for page_num in range(1, max_pages + 1):
+                    url = f"{self.BASE_URL}/vehiculos?page={page_num}"
+                    try:
+                        print(f"VendeTuNaveScraper: Procesando pagina {page_num}/{max_pages}...")
+                        try:
+                            await asyncio.wait_for(page.goto(url, wait_until="domcontentloaded"), timeout=25.0)
+                        except Exception as e:
+                            print(f"VendeTuNaveScraper: Timeout en goto pagina {page_num}: {e}")
+                            continue
+
+                        try:
+                            await asyncio.wait_for(page.wait_for_selector("a[href*='/vehiculos/carrosycamionetas/']", state="attached"), timeout=15.0)
+                        except Exception as e:
+                            print(f"VendeTuNaveScraper: Timeout en wait_for_selector pagina {page_num}: {e}")
+                            continue
+
+                        await page.evaluate("window.scrollTo(0, 1000)")
+                        await page.wait_for_timeout(1000)
+
+                        cards = await page.query_selector_all("a[href*='/vehiculos/carrosycamionetas/']")
+                        for card in cards:
+                            try:
+                                href = await card.get_attribute("href")
+                                text = await card.inner_text()
+                                if not href or not text:
+                                    continue
+                                
+                                lines = [line.strip() for line in text.split("\n") if line.strip()]
+                                if len(lines) < 2:
+                                    continue
+                                    
+                                title = lines[0]
+                                price_text = lines[1]
+                                details = lines[2:]
+                                
+                                vehicle_data = self._parse_card(title, price_text, details, href)
+                                if vehicle_data:
+                                    vehicles.append(vehicle_data)
+                            except Exception:
+                                continue
+                    except Exception:
+                        continue
+            finally:
+                await page.close()
+        finally:
+            await self.close()
+        return vehicles
+
+    def _parse_card(self, title: str, price_text: str, details: list, link: str | None) -> dict | None:
+        if not title:
+            return None
+
+        price = extract_price(price_text)
+        if not price or price < 1000000:
+            return None
+
+        year = None
+        mileage = None
+        
+        flat_details = []
+        for d in details:
+            if "-" in d:
+                flat_details.extend(d.split("-"))
+            elif "|" in d:
+                flat_details.extend(d.split("|"))
+            else:
+                flat_details.append(d)
+                
+        flat_details = [f.strip() for f in flat_details if f.strip()]
+        
+        for detail in flat_details:
+            if y := extract_year(detail):
+                year = y
+            if m := extract_mileage(detail):
+                mileage = m
+
+        if not year:
+            match_title = re.search(r'\b(19\d{2}|20\d{2})\b', title)
+            if match_title:
+                year = int(match_title.group(1))
+
+        if not year:
+            return None
+
+        parts = title.strip().split()
+        if len(parts) >= 2:
+            brand = normalize_brand(parts[0])
+            model_str = " ".join(parts[1:])
+            if str(year) in model_str:
+                model_str = model_str.replace(str(year), "").strip()
+            model = normalize_model(brand, model_str)
+        else:
+            brand = normalize_brand(title)
+            model = title.strip()
+
+        full_url = f"{self.BASE_URL}{link}" if link and link.startswith("/") else link
+        if full_url:
+            full_url = full_url.split("#")[0].split("?")[0]
+
+        source_id = None
+        if full_url:
+            match_id = re.search(r'-(\d+)$', full_url)
+            if match_id:
+                source_id = match_id.group(1)
+
+        return {
+            "source": "vendetunave",
+            "source_id": source_id,
+            "source_url": full_url or self.BASE_URL,
+            "brand": brand,
+            "model": model,
+            "year": year,
+            "mileage": mileage,
+            "price": price,
+            "currency": "COP",
+            "title": title.strip(),
+            "date_found": datetime.now(timezone.utc),
+        }
+

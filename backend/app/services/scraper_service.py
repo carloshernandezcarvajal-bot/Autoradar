@@ -7,7 +7,7 @@ from app.database import async_session
 from app.models.vehicle import Vehicle
 from app.models.listing import Listing
 from app.models.price_history import PriceHistory
-from app.services.scraper import TuCarroScraper, CarroYaScraper
+from app.services.scraper import VendeTuNaveScraper, CarroYaScraper
 from app.services.normalization import normalize_brand, normalize_model
 
 
@@ -95,16 +95,16 @@ async def _save_vehicle_data(db: AsyncSession, data: dict) -> dict:
 
 
 async def run_scrape(sources: list[str] | None = None) -> dict:
-    results = {"tucarro": 0, "carroya": 0, "errors": [], "total": 0}
+    results = {"vendetunave": 0, "carroya": 0, "errors": [], "total": 0}
 
     if sources is None:
-        sources = ["tucarro", "carroya"]
+        sources = ["vendetunave", "carroya"]
 
     scrape_tasks = []
 
-    if "tucarro" in sources:
-        tucarro = TuCarroScraper()
-        scrape_tasks.append(("tucarro", tucarro.scrape(max_pages=1)))
+    if "vendetunave" in sources:
+        vendetunave = VendeTuNaveScraper()
+        scrape_tasks.append(("vendetunave", vendetunave.scrape(max_pages=20)))
 
     if "carroya" in sources:
         carroya = CarroYaScraper()

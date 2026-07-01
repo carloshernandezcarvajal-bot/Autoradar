@@ -47,6 +47,13 @@ function getScoreLabelColor(label: string | undefined): string {
   }
 }
 
+function formatSource(source: string): string {
+  if (source.toLowerCase() === "carroya") return "CarroYa";
+  if (source.toLowerCase() === "vendetunave") return "VendeTuNave";
+  if (source.toLowerCase() === "tucarro") return "TuCarro";
+  return source;
+}
+
 export default function VehicleCard({
   listing,
   onFavorite,
@@ -135,7 +142,7 @@ export default function VehicleCard({
             {formatPrice(listing.current_price)}
           </p>
           <p className="text-xs text-[var(--muted)]">
-            {listing.source} &middot; {listing.currency}
+            {formatSource(listing.source)} &middot; {listing.currency}
           </p>
         </div>
         <div className="flex items-center gap-2">
