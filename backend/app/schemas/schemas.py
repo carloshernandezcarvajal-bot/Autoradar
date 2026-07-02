@@ -33,9 +33,16 @@ class ListingOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class AlternativeListingOut(BaseModel):
+    source: str
+    url: str
+    price: float
+
+
 class ListingWithScore(ListingOut):
     opportunity_score: float | None = None
     score_label: str | None = None
+    alternative_listings: list[AlternativeListingOut] | None = None
 
 
 class PriceHistoryPoint(BaseModel):

@@ -45,24 +45,38 @@ async def search_vehicles(params: SearchParams, db: AsyncSession = Depends(get_d
     ])
 
     if need_join:
-        base = select(Listing).join(Vehicle, Listing.vehicle_id == Vehicle.id)
-        count_q = select(func.count()).select_from(Listing).join(Vehicle, Listing.vehicle_id == Vehicle.id).where(*conditions)
-        query = base.where(*conditions).options(selectinload(Listing.vehicle))
+        v_query = select(Vehicle.id).join(Listing, Listing.vehicle_id == Vehicle.id).where(*conditions).distinct()
     else:
-        base = select(Listing)
-        count_q = select(func.count()).select_from(Listing).where(*conditions)
-        query = base.where(*conditions).options(selectinload(Listing.vehicle))
+        v_query = select(Listing.vehicle_id).where(*conditions).distinct()
 
+    count_q = select(func.count()).select_from(v_query.subquery())
     total = (await db.execute(count_q)).scalar() or 0
 
-    query = query.offset((params.page - 1) * params.page_size).limit(params.page_size)
-    result = await db.execute(query)
-    listings = result.scalars().all()
+    v_query = v_query.offset((params.page - 1) * params.page_size).limit(params.page_size)
+    v_result = await db.execute(v_query)
+    vehicle_ids = [row[0] for row in v_result.all()]
 
+    items = []
     stats = {"avg": 0, "median": 0, "p25": 0, "p75": 0, "count": 0}
-    if listings:
-        brand = params.brand or listings[0].vehicle.brand
-        model = params.model or listings[0].vehicle.model
+
+    if vehicle_ids:
+        # Cargar todos los listings activos de estos vehículos
+        all_listings_q = (
+            select(Listing)
+            .where(Listing.vehicle_id.in_(vehicle_ids), Listing.is_active == True)
+            .options(selectinload(Listing.vehicle))
+        )
+        all_listings_result = await db.execute(all_listings_q)
+        all_listings = all_listings_result.scalars().all()
+
+        # Agrupar en Python
+        listings_by_vehicle = {}
+        for l in all_listings:
+            listings_by_vehicle.setdefault(l.vehicle_id, []).append(l)
+
+        # Calcular stats de mercado si corresponde
+        brand = params.brand or all_listings[0].vehicle.brand
+        model = params.model or all_listings[0].vehicle.model
         similar = (
             select(Listing)
             .join(Vehicle, Listing.vehicle_id == Vehicle.id)
@@ -73,40 +87,59 @@ async def search_vehicles(params: SearchParams, db: AsyncSession = Depends(get_d
         if similar_listings:
             stats = await calculate_market_stats(similar_listings)
 
-    items = []
-    for listing in listings:
-        days_published = 0
-        if listing.date_found:
-            if listing.date_found.tzinfo is None:
-                now = datetime.now()
-            else:
-                now = datetime.now(timezone.utc)
-            days_published = (now - listing.date_found).days
-        mileage = listing.vehicle.mileage if listing.vehicle else None
-        year = listing.vehicle.year if listing.vehicle else 0
-        score = calculate_score(
-            price=listing.current_price,
-            market_avg=stats["avg"],
-            mileage=mileage,
-            year=year,
-            days_published=days_published,
-        )
-        items.append(
-            ListingWithScore(
-                id=listing.id,
-                vehicle_id=listing.vehicle_id,
-                source=listing.source,
-                url=listing.url,
-                current_price=listing.current_price,
-                currency=listing.currency,
-                date_found=listing.date_found,
-                date_updated=listing.date_updated,
-                is_active=listing.is_active,
-                vehicle=listing.vehicle,
-                opportunity_score=score["score"],
-                score_label=score["label"],
+        for vid in vehicle_ids:
+            v_listings = listings_by_vehicle.get(vid, [])
+            if not v_listings:
+                continue
+
+            v_listings.sort(key=lambda x: x.current_price)
+            main_listing = v_listings[0]
+
+            alt_list = [
+                {
+                    "source": l.source,
+                    "url": l.url,
+                    "price": l.current_price,
+                }
+                for l in v_listings
+            ]
+
+            days_published = 0
+            if main_listing.date_found:
+                if main_listing.date_found.tzinfo is None:
+                    now = datetime.now()
+                else:
+                    now = datetime.now(timezone.utc)
+                days_published = (now - main_listing.date_found).days
+
+            mileage = main_listing.vehicle.mileage if main_listing.vehicle else None
+            year = main_listing.vehicle.year if main_listing.vehicle else 0
+
+            score = calculate_score(
+                price=main_listing.current_price,
+                market_avg=stats["avg"],
+                mileage=mileage,
+                year=year,
+                days_published=days_published,
             )
-        )
+
+            items.append(
+                ListingWithScore(
+                    id=main_listing.id,
+                    vehicle_id=main_listing.vehicle_id,
+                    source=main_listing.source,
+                    url=main_listing.url,
+                    current_price=main_listing.current_price,
+                    currency=main_listing.currency,
+                    date_found=main_listing.date_found,
+                    date_updated=main_listing.date_updated,
+                    is_active=main_listing.is_active,
+                    vehicle=main_listing.vehicle,
+                    opportunity_score=score["score"],
+                    score_label=score["label"],
+                    alternative_listings=alt_list,
+                )
+            )
 
     if params.sort_by == "price":
         items.sort(key=lambda x: x.current_price, reverse=params.sort_order == "desc")

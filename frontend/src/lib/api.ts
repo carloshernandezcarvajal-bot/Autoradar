@@ -54,9 +54,16 @@ export interface Listing {
   vehicle?: Vehicle;
 }
 
+export interface AlternativeListing {
+  source: string;
+  url: string;
+  price: number;
+}
+
 export interface ListingWithScore extends Listing {
   opportunity_score?: number;
   score_label?: string;
+  alternative_listings?: AlternativeListing[];
 }
 
 export interface SearchResult {

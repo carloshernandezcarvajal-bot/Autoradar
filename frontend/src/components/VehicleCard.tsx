@@ -48,9 +48,13 @@ function getScoreLabelColor(label: string | undefined): string {
 }
 
 function formatSource(source: string): string {
-  if (source.toLowerCase() === "carroya") return "CarroYa";
-  if (source.toLowerCase() === "vendetunave") return "VendeTuNave";
-  if (source.toLowerCase() === "tucarro") return "TuCarro";
+  const s = source.toLowerCase();
+  if (s === "carroya") return "CarroYa";
+  if (s === "vendetunave") return "VendeTuNave";
+  if (s === "tucarro") return "TuCarro";
+  if (s === "segundazo") return "Segundazo";
+  if (s === "listoya") return "ListoYaAutos";
+  if (s === "carmax") return "CarMax";
   return source;
 }
 
@@ -164,6 +168,38 @@ export default function VehicleCard({
           </a>
         </div>
       </div>
+
+      {listing.alternative_listings && listing.alternative_listings.length > 1 && (
+        <div className="mt-4 border-t border-[var(--border)] pt-3">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] mb-2">
+            Disponible en otros portales:
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {listing.alternative_listings.map((alt, index) => (
+              <a
+                key={index}
+                href={alt.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-all ${
+                  alt.price === listing.current_price
+                    ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-400 hover:border-emerald-500"
+                    : "border-[var(--border)] bg-[var(--card)] text-[var(--muted)] hover:border-[var(--primary)] hover:text-[var(--foreground)]"
+                }`}
+              >
+                <span>{formatSource(alt.source)}</span>
+                <span className="font-semibold">{formatPrice(alt.price)}</span>
+                {alt.price === listing.current_price && (
+                  <span className="rounded bg-emerald-500/20 px-1 py-0.2 text-[8px] font-bold text-emerald-400">
+                    ¡Menor precio!
+                  </span>
+                )}
+                <ExternalLink className="h-2.5 w-2.5 opacity-60" />
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
