@@ -104,30 +104,6 @@ export default function ResultsGrid({
           />
         ))}
       </div>
-
-      {result.total_pages > 1 && (
-        <div className="mt-8 flex items-center justify-center gap-2">
-          <button
-            onClick={() => onPageChange(result.page - 1)}
-            disabled={result.page <= 1}
-            className="flex items-center gap-1 rounded-lg border border-[var(--border)] px-3 py-2 text-sm transition-colors hover:bg-[var(--secondary)] disabled:opacity-40"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Anterior
-          </button>
-          <span className="px-3 text-sm text-[var(--muted)]">
-            {result.page} / {result.total_pages}
-          </span>
-          <button
-            onClick={() => onPageChange(result.page + 1)}
-            disabled={result.page >= result.total_pages}
-            className="flex items-center gap-1 rounded-lg border border-[var(--border)] px-3 py-2 text-sm transition-colors hover:bg-[var(--secondary)] disabled:opacity-40"
-          >
-            Siguiente
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
-      )}
     </div>
   );
 }

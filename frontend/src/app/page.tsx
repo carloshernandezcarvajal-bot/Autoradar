@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { TrendingUp, Zap, Shield, BarChart3, ChevronRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import SearchBar from "@/components/SearchBar";
@@ -8,7 +8,6 @@ import ResultsGrid from "@/components/ResultsGrid";
 import ComparisonModal from "@/components/ComparisonModal";
 import { api } from "@/lib/api";
 import type { SearchFilters } from "@/types";
-import type { ListingWithScore } from "@/types";
 import type { SearchResult } from "@/lib/api";
 
 export default function Home() {
@@ -19,15 +18,40 @@ export default function Home() {
   const [compareIds, setCompareIds] = useState<Set<number>>(new Set());
   const [showCompare, setShowCompare] = useState(false);
 
-  const handleSearch = async (filters: SearchFilters) => {
-    setLoading(true);
+  // Estados y refs para scroll infinito
+  const [currentFilters, setCurrentFilters] = useState<SearchFilters | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const observerTarget = useRef<HTMLDivElement>(null);
+
+  const handleSearch = async (filters: SearchFilters, isLoadMore = false) => {
+    if (isLoadMore) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
+
     try {
       const data = await api.search(filters);
-      setResult(data);
+      if (isLoadMore) {
+        setResult((prev) => {
+          if (!prev) return data;
+          return {
+            ...data,
+            items: [...prev.items, ...data.items],
+          };
+        });
+      } else {
+        setResult(data);
+      }
+      setCurrentFilters(filters);
     } catch {
-      setResult(null);
+      if (!isLoadMore) {
+        setResult(null);
+        setCurrentFilters(null);
+      }
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -51,6 +75,35 @@ export default function Home() {
       return next;
     });
   };
+
+  // Cargar más paginas de forma asíncrona al scrolear
+  const handleLoadMore = useCallback(() => {
+    if (loading || loadingMore || !result || !currentFilters) return;
+    if (result.page >= result.total_pages) return;
+
+    const nextPage = result.page + 1;
+    handleSearch({ ...currentFilters, page: nextPage }, true);
+  }, [loading, loadingMore, result, currentFilters]);
+
+  // Observer al final del grid de resultados
+  useEffect(() => {
+    const target = observerTarget.current;
+    if (!target || !result || result.page >= result.total_pages) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          handleLoadMore();
+        }
+      },
+      { threshold: 0.1, rootMargin: "150px" } // Precargar un poco antes de que toque el fondo de pantalla
+    );
+
+    observer.observe(target);
+    return () => {
+      observer.unobserve(target);
+    };
+  }, [result, handleLoadMore]);
 
   return (
     <div className="min-h-screen">
@@ -137,16 +190,26 @@ export default function Home() {
           <ResultsGrid
             result={result}
             loading={loading}
-            onPageChange={(page) => {
-              if (result) {
-                handleSearch({ page, page_size: 20 });
-              }
-            }}
+            onPageChange={() => {}}
             onFavorite={handleFavorite}
             favorites={favorites}
             compareIds={compareIds}
             onCompare={handleCompare}
           />
+
+          {/* Observer Target / Spinner de Carga de Scroll Infinito */}
+          {result && result.page < result.total_pages && (
+            <div ref={observerTarget} className="mt-10 flex items-center justify-center py-6">
+              {loadingMore ? (
+                <div className="flex items-center gap-2.5 text-sm text-[var(--muted)]">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--primary)] border-t-transparent" />
+                  <span className="font-medium animate-pulse">Cargando más vehículos...</span>
+                </div>
+              ) : (
+                <div className="h-1.5 w-1.5 rounded-full bg-[var(--border)]" />
+              )}
+            </div>
+          )}
         </section>
 
         {showCompare && result && compareIds.size >= 2 && (
